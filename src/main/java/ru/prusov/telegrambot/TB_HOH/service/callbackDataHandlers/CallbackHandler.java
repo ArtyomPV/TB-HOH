@@ -1,4 +1,4 @@
-package ru.prusov.telegrambot.TB_HOH.service;
+package ru.prusov.telegrambot.TB_HOH.service.callbackDataHandlers;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
