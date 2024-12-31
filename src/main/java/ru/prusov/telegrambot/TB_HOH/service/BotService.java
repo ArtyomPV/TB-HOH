@@ -1,28 +1,40 @@
 package ru.prusov.telegrambot.TB_HOH.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class BotService {
+    private final Map<String, CallbackHandler> handlers = new HashMap<>();
+    @Autowired
+    private Button1Handler button1Handler;
+    @Autowired
+    private Button2Handler button2Handler;
+    @Autowired
+    private Button3Handler button3Handler;
+    @Autowired
+    private Button4Handler button4Handler;
+
+
+    public void init(){
+        handlers.put("button1", button1Handler);
+        handlers.put("button2", button2Handler);
+        handlers.put("button3", button3Handler);
+        handlers.put("button4", button4Handler);
+    }
     public SendMessage handleCallback(String callbackData){
-        SendMessage response = new SendMessage();
-        switch (callbackData){
-            case "button1":
-                response.setText("Pressed btn 1");
-                break;
-            case "button2":
-                response.setText("Pressed btn 2");
-                break;
-            case "button3":
-                response.setText("Pressed btn 3");
-                break;
-            case "button4":
-                response.setText("Pressed btn 4");
-                break;
-            default:
-                response.setText("Unknown command");
+        CallbackHandler handler = handlers.get(callbackData);
+        if(handler != null){
+            return handler.handle(callbackData);
+        } else {
+            SendMessage response = new SendMessage();
+            response.setText("Unknown command");
+            return response;
         }
-        return response;
+
     }
 }

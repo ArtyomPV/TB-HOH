@@ -32,6 +32,10 @@ public class TelegramBotController extends TelegramLongPollingBot {
         }
     }
 
+    public void init(){
+        botService.init();
+    }
+
     private void handleMessage(Update update) {
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(update.getMessage().getChatId()));
@@ -77,6 +81,7 @@ public class TelegramBotController extends TelegramLongPollingBot {
 
     private void handleCallbackQuery(Update update) {
         String callbackData = update.getCallbackQuery().getData();
+        System.out.println(callbackData);
         SendMessage response = botService.handleCallback(callbackData);
         response.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
         try{
