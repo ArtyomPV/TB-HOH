@@ -81,8 +81,10 @@ public class TelegramBotController extends TelegramLongPollingBot {
 
     private void handleCallbackQuery(Update update) {
         String callbackData = update.getCallbackQuery().getData();
+        Long telegramId = update.getCallbackQuery().getFrom().getId();
+        String userName = update.getCallbackQuery().getFrom().getUserName();
         System.out.println(callbackData);
-        SendMessage response = botService.handleCallback(callbackData);
+        SendMessage response = botService.handleCallback(callbackData, telegramId, userName);
         response.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
         try{
             execute(response);
