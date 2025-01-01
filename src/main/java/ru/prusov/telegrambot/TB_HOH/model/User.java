@@ -8,12 +8,12 @@ import java.time.LocalDate;
 @Entity
 @Table(name="users")
 public class User {
-    @Getter
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(name = "telegram_id", unique = true, nullable = false)
+    @Column(name = "telegram_id", nullable = false)
     private Long telegramId;
 
     @Column(name = "user_name", nullable = false)
