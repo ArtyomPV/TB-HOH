@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
+import static ru.prusov.telegrambot.TB_HOH.settings.constants.ButtonName.*;
+
 @Service
 public class BotService {
 
@@ -24,6 +26,8 @@ public class BotService {
     private Button3Handler button3Handler;
     @Autowired
     private Button4Handler button4Handler;
+    @Autowired
+    private ConstructionChapterHandler constructionChapterHandler;
 
     public BotService(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -31,10 +35,13 @@ public class BotService {
 
 
     public void init(){
+        handlers.put(CONSTRUCTION.toString(), constructionChapterHandler);
         handlers.put("button1", button1Handler);
         handlers.put("button2", button2Handler);
         handlers.put("button3", button3Handler);
         handlers.put("button4", button4Handler);
+
+        System.out.println(CONSTRUCTION.name());
     }
     public SendMessage handleCallback(String callbackData, Long telegramId, String userName){
 
