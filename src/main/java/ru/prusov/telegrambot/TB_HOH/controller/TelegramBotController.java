@@ -1,6 +1,7 @@
 package ru.prusov.telegrambot.TB_HOH.controller;
 
 
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -17,6 +18,8 @@ import java.util.List;
 
 import static ru.prusov.telegrambot.TB_HOH.settings.BotConfig.BOT_NAME;
 import static ru.prusov.telegrambot.TB_HOH.settings.BotConfig.BOT_TOKEN;
+import static ru.prusov.telegrambot.TB_HOH.settings.constants.ButtonName.*;
+import static ru.prusov.telegrambot.TB_HOH.settings.constants.MessageContent.INTRO;
 
 @Component
 public class TelegramBotController extends TelegramLongPollingBot {
@@ -37,38 +40,86 @@ public class TelegramBotController extends TelegramLongPollingBot {
     }
 
     private void handleMessage(Update update) {
+        String message = update.getMessage().getText();
+        Long chatId = update.getMessage().getChatId();
+        if(message.equals("/start")){
+            sendWelcomeMessage(chatId);
+        }
+//
+//        SendMessage message = new SendMessage();
+//        message.setChatId(String.valueOf(update.getMessage().getChatId()));
+//        message.setText("Выберите кнопку");
+//
+//        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+//        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+//
+//        InlineKeyboardButton button1 = createInlineKeyboardButton("Button 1", "button1");
+//        InlineKeyboardButton button2 = createInlineKeyboardButton("Button 2", "button2");
+//        InlineKeyboardButton button3 = createInlineKeyboardButton("Button 3", "button3");
+//        InlineKeyboardButton button4 = createInlineKeyboardButton("Button 4", "button4");
+//
+//        List<InlineKeyboardButton> row1 = Arrays.asList(
+//                button1,
+//                button2
+//        );
+//        List<InlineKeyboardButton> row2 = Arrays.asList(
+//                button3,
+//                button4
+//        );
+//
+//        rows.add(row1);
+//        rows.add(row2);
+//
+//        keyboardMarkup.setKeyboard(rows);
+//        message.setReplyMarkup(keyboardMarkup);
+//
+//        try{
+//            execute(message);
+//        } catch (Exception e){
+//            e.printStackTrace();
+//        }
+    }
+
+    private void sendWelcomeMessage(Long chatId) {
         SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(update.getMessage().getChatId()));
-        message.setText("Выберите кнопку");
-
-        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-
-        InlineKeyboardButton button1 = createInlineKeyboardButton("Button 1", "button1");
-        InlineKeyboardButton button2 = createInlineKeyboardButton("Button 2", "button2");
-        InlineKeyboardButton button3 = createInlineKeyboardButton("Button 3", "button3");
-        InlineKeyboardButton button4 = createInlineKeyboardButton("Button 4", "button4");
-
-        List<InlineKeyboardButton> row1 = Arrays.asList(
-                button1,
-                button2
-        );
-        List<InlineKeyboardButton> row2 = Arrays.asList(
-                button3,
-                button4
-        );
-
-        rows.add(row1);
-        rows.add(row2);
-
-        keyboardMarkup.setKeyboard(rows);
-        message.setReplyMarkup(keyboardMarkup);
-
+        message.setText(INTRO);
+        message.setChatId(String.valueOf(chatId));
+        InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardForWelcomeMessage();
+        message.setReplyMarkup(inlineKeyboardMarkup);
         try{
             execute(message);
         } catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    private InlineKeyboardMarkup createInlineKeyboardForWelcomeMessage() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        List<InlineKeyboardButton> row1 = new ArrayList<>();
+        List<InlineKeyboardButton> row2 = new ArrayList<>();
+        List<InlineKeyboardButton> row3 = new ArrayList<>();
+
+        InlineKeyboardButton constructionButton = new InlineKeyboardButton();
+        constructionButton.setText(CONSTRUCTION.getValue());
+        constructionButton.setCallbackData(CONSTRUCTION.toString());
+
+        InlineKeyboardButton engineeringButton = new InlineKeyboardButton();
+        engineeringButton.setText(ENGINEERING.getValue());
+        engineeringButton.setCallbackData(ENGINEERING.toString());
+
+        InlineKeyboardButton automaticsButton = new InlineKeyboardButton();
+        automaticsButton.setText(AUTOMATICS.getValue());
+        automaticsButton.setCallbackData(AUTOMATICS.toString());
+
+        row1.add(constructionButton);
+        row2.add(engineeringButton);
+        row3.add(automaticsButton);
+        rows.add(row1);
+        rows.add(row2);
+        rows.add(row3);
+        inlineKeyboardMarkup.setKeyboard(rows);
+        return inlineKeyboardMarkup;
     }
 
     private InlineKeyboardButton createInlineKeyboardButton(String buttonName, String buttonCallbackData) {
