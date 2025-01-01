@@ -8,6 +8,7 @@ import ru.prusov.telegrambot.TB_HOH.repositories.UserRepository;
 import ru.prusov.telegrambot.TB_HOH.service.callbackDataHandlers.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,9 +44,9 @@ public class BotService {
 
         System.out.println(CONSTRUCTION.name());
     }
-    public SendMessage handleCallback(String callbackData, Long telegramId, String userName){
+    public SendMessage handleCallback(String callbackData, Long telegramId, String userName, String firstName, String lastName){
 
-        User user = new User(telegramId, userName, LocalDate.now());
+        User user = new User(telegramId, userName, LocalDateTime.now(), firstName, lastName);
         userRepository.save(user);
 
         CallbackHandler handler = handlers.get(callbackData);
