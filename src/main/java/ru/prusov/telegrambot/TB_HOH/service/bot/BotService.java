@@ -1,4 +1,4 @@
-package ru.prusov.telegrambot.TB_HOH.service;
+package ru.prusov.telegrambot.TB_HOH.service.bot;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -7,7 +7,6 @@ import ru.prusov.telegrambot.TB_HOH.model.User;
 import ru.prusov.telegrambot.TB_HOH.repositories.UserRepository;
 import ru.prusov.telegrambot.TB_HOH.service.callbackDataHandlers.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,37 +16,17 @@ import static ru.prusov.telegrambot.TB_HOH.settings.constants.ButtonName.*;
 @Service
 public class BotService {
 
-    private final UserRepository userRepository;
+
     private final Map<String, CallbackHandler> handlers = new HashMap<>();
-    @Autowired
-    private Button1Handler button1Handler;
-    @Autowired
-    private Button2Handler button2Handler;
-    @Autowired
-    private Button3Handler button3Handler;
-    @Autowired
-    private Button4Handler button4Handler;
+
     @Autowired
     private ConstructionChapterHandler constructionChapterHandler;
 
-    public BotService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
-
     public void init(){
         handlers.put(CONSTRUCTION.toString(), constructionChapterHandler);
-        handlers.put("button1", button1Handler);
-        handlers.put("button2", button2Handler);
-        handlers.put("button3", button3Handler);
-        handlers.put("button4", button4Handler);
-
-        System.out.println(CONSTRUCTION.name());
     }
-    public SendMessage handleCallback(String callbackData, Long telegramId, String userName, String firstName, String lastName){
+    public SendMessage handleCallback(String callbackData){
 
-        User user = new User(telegramId, userName, LocalDateTime.now(), firstName, lastName);
-        userRepository.save(user);
 
         CallbackHandler handler = handlers.get(callbackData);
         if(handler != null){

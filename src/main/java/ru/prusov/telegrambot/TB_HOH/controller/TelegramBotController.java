@@ -1,7 +1,6 @@
 package ru.prusov.telegrambot.TB_HOH.controller;
 
 
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -9,11 +8,11 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import ru.prusov.telegrambot.TB_HOH.service.BotService;
-import ru.prusov.telegrambot.TB_HOH.settings.BotConfig;
+import ru.prusov.telegrambot.TB_HOH.model.User;
+import ru.prusov.telegrambot.TB_HOH.service.bot.BotService;
+import ru.prusov.telegrambot.TB_HOH.service.user.UserService;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static ru.prusov.telegrambot.TB_HOH.settings.BotConfig.BOT_NAME;
@@ -25,59 +24,28 @@ import static ru.prusov.telegrambot.TB_HOH.settings.constants.MessageContent.INT
 public class TelegramBotController extends TelegramLongPollingBot {
     @Autowired
     private BotService botService;
+    @Autowired
+    private UserService userService;
 
     @Override
     public void onUpdateReceived(Update update) {
-        if(update.hasCallbackQuery()){
+        if (update.hasCallbackQuery()) {
             handleCallbackQuery(update);
-        } else if (update.hasMessage() && update.getMessage().hasText()){
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
             handleMessage(update);
         }
     }
 
-    public void init(){
+    public void init() {
         botService.init();
     }
 
     private void handleMessage(Update update) {
         String message = update.getMessage().getText();
         Long chatId = update.getMessage().getChatId();
-        if(message.equals("/start")){
+        if (message.equals("/start")) {
             sendWelcomeMessage(chatId);
         }
-//
-//        SendMessage message = new SendMessage();
-//        message.setChatId(String.valueOf(update.getMessage().getChatId()));
-//        message.setText("Выберите кнопку");
-//
-//        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
-//        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-//
-//        InlineKeyboardButton button1 = createInlineKeyboardButton("Button 1", "button1");
-//        InlineKeyboardButton button2 = createInlineKeyboardButton("Button 2", "button2");
-//        InlineKeyboardButton button3 = createInlineKeyboardButton("Button 3", "button3");
-//        InlineKeyboardButton button4 = createInlineKeyboardButton("Button 4", "button4");
-//
-//        List<InlineKeyboardButton> row1 = Arrays.asList(
-//                button1,
-//                button2
-//        );
-//        List<InlineKeyboardButton> row2 = Arrays.asList(
-//                button3,
-//                button4
-//        );
-//
-//        rows.add(row1);
-//        rows.add(row2);
-//
-//        keyboardMarkup.setKeyboard(rows);
-//        message.setReplyMarkup(keyboardMarkup);
-//
-//        try{
-//            execute(message);
-//        } catch (Exception e){
-//            e.printStackTrace();
-//        }
     }
 
     private void sendWelcomeMessage(Long chatId) {
@@ -86,9 +54,9 @@ public class TelegramBotController extends TelegramLongPollingBot {
         message.setChatId(String.valueOf(chatId));
         InlineKeyboardMarkup inlineKeyboardMarkup = createInlineKeyboardForWelcomeMessage();
         message.setReplyMarkup(inlineKeyboardMarkup);
-        try{
+        try {
             execute(message);
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -129,19 +97,14 @@ public class TelegramBotController extends TelegramLongPollingBot {
         return button;
     }
 
-
     private void handleCallbackQuery(Update update) {
         String callbackData = update.getCallbackQuery().getData();
-        Long telegramId = update.getCallbackQuery().getFrom().getId();
-        String userName = update.getCallbackQuery().getFrom().getUserName();
-        String firstName = update.getCallbackQuery().getFrom().getFirstName();
-        String lastName = update.getCallbackQuery().getFrom().getLastName();
-        System.out.println(callbackData);
-        SendMessage response = botService.handleCallback(callbackData, telegramId, userName, firstName, lastName);
+        userService.saveUser(update);
+        SendMessage response = botService.handleCallback(callbackData);
         response.setChatId(String.valueOf(update.getCallbackQuery().getMessage().getChatId()));
-        try{
+        try {
             execute(response);
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -155,6 +118,4 @@ public class TelegramBotController extends TelegramLongPollingBot {
     public String getBotToken() {
         return BOT_TOKEN;
     }
-
-
 }
