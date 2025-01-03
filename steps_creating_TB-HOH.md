@@ -490,4 +490,463 @@ private void handleCallbackQuery(Update update) {
 
 Если у вас есть дополнительные вопросы или нужны уточнения, дайте знать!
 
-## 
+## Нужно модернизировать код:
+1. На стартовом экране вывести текс с приветствием и с инлайн клавиатурой с тремя кнопками: Строительство, Инженерные сети, Автоматика
+2. При нажатии кнопки Строительство вывести текст: "Здесь вы можете ознакомиться с завершенными объектами, прочитать интересные статьи и если остались вопросы свяжитесь с нами" под текстом должны быть четыре кнопки : Проекты, Интересные статьи, Связаться с нами и кнопка назад которая возвращает в предыдущий экран.
+3. При нажатии на кнопку Проекты вывести новый экран с текстом заголовком , кртинкой и описанием к картинке    
+
+Давайте обновим предложение и предоставим более полное и структурированное решение, чтобы создать Telegram-бота, который выводит приветствие с инлайн-клавиатурой и обрабатывает различные команды. Я также включу комментарии для лучшего понимания.
+
+### Шаг 1: Создание структуры бота
+
+Вот общая структура и классы, которые нам понадобятся.
+
+1. `TelegramBotController` — основная логика обработки сообщений.
+2. `BotService` — сервис для обработки команд и управления состоянием.
+3. Классы для кнопок и отправки сообщений.
+
+### Код для `TelegramBotController`
+
+```java
+package ru.gb.telegrambot.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+import ru.gb.telegrambot.service.BotService;
+
+@Component
+public class TelegramBotController extends TelegramLongPollingBot {
+    
+    @Autowired
+    private BotService botService;
+
+    @Override
+    public void onUpdateReceived(Update update) {
+        if (update.hasCallbackQuery()) {
+            handleCallbackQuery(update);
+        } else if (update.hasMessage() && update.getMessage().hasText()) {
+            handleMessage(update);
+        }
+    }
+
+    private void handleCallbackQuery(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        Long telegramId = update.getCallbackQuery().getFrom().getId();
+        SendMessage response = botService.handleCallback(callbackData, telegramId);
+        response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+        try {
+            execute(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleMessage(Update update) {
+        // Обработка команды /start для приветственного сообщения
+        if (update.getMessage().getText().equals("/start")) {
+            sendWelcomeMessage(update.getMessage().getChatId());
+        }
+    }
+
+    private void sendWelcomeMessage(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Добро пожаловать! Пожалуйста, выберите один из вариантов:");
+
+        // Создание инлайн клавиатуры
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row = Arrays.asList(
+            new InlineKeyboardButton().setText("Строительство").setCallbackData("construction"),
+            new InlineKeyboardButton().setText("Инженерные сети").setCallbackData("engineering_networks"),
+            new InlineKeyboardButton().setText("Автоматика").setCallbackData("automation")
+        );
+
+        rows.add(row);
+        keyboardMarkup.setKeyboard(rows);
+        message.setReplyMarkup(keyboardMarkup);
+
+        try {
+            execute(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getBotUsername() {
+        return "YOUR_BOT_USERNAME"; // Укажите имя вашего бота
+    }
+
+    @Override
+    public String getBotToken() {
+        return "YOUR_BOT_TOKEN"; // Укажите токен вашего бота
+    }
+}
+```
+
+### Код для `BotService`
+
+Теперь обновим `BotService`, чтобы добавить логику обработки кнопок, а также кнопок "Проекты", "Интересные статьи", "Связаться с нами" и "Назад".
+
+```java
+package ru.gb.telegrambot.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import ru.gb.telegrambot.model.User;
+import ru.gb.telegrambot.repository.UserRepository;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+@Service
+public class BotService {
+    
+    private final UserRepository userRepository;
+
+    @Autowired
+    public BotService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public SendMessage handleCallback(String callbackData, Long telegramId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(telegramId.toString());  // Указываем чат ID
+
+        // Сохраняем информацию о пользователе
+        User user = new User(telegramId, LocalDateTime.now());
+        userRepository.save(user);
+
+        switch (callbackData) {
+            case "construction":
+                message.setText("Здесь вы можете ознакомиться с завершенными объектами, прочитать интересные статьи и если остались вопросы свяжитесь с нами.");
+                addConstructionOptions(message);
+                break;
+            case "projects":
+                sendProjectInfo(message.getChatId());
+                break;
+            case "interesting_articles":
+                message.setText("Здесь вы можете прочитать интересные статьи.");
+                // Добавьте логику или вызов метода для интересных статей
+                addConstructionOptions(message); // Возвращение к кнопкам
+                break;
+            case "contact_us":
+                message.setText("Свяжитесь с нами по контактным данным...");
+                addConstructionOptions(message); // Возвращение к кнопкам
+                break;
+            case "back":
+                message.setText("Добро пожаловать! Пожалуйста, выберите один из вариантов:");
+                addMainOptions(message);
+                break;
+            default:
+                message.setText("Неизвестная команда");
+        }
+        return message;
+    }
+
+    private void addConstructionOptions(SendMessage message) {
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row = Arrays.asList(
+            new InlineKeyboardButton().setText("Проекты").setCallbackData("projects"),
+            new InlineKeyboardButton().setText("Интересные статьи").setCallbackData("interesting_articles"),
+            new InlineKeyboardButton().setText("Связаться с нами").setCallbackData("contact_us"),
+            new InlineKeyboardButton().setText("Назад").setCallbackData("back")
+        );
+
+        rows.add(row);
+        keyboardMarkup.setKeyboard(rows);
+        message.setReplyMarkup(keyboardMarkup);
+    }
+
+    private void addMainOptions(SendMessage message) {
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        List<InlineKeyboardButton> row = Arrays.asList(
+            new InlineKeyboardButton().setText("Строительство").setCallbackData("construction"),
+            new InlineKeyboardButton().setText("Инженерные сети").setCallbackData("engineering_networks"),
+            new InlineKeyboardButton().setText("Автоматика").setCallbackData("automation")
+        );
+
+        rows.add(row);
+        keyboardMarkup.setKeyboard(rows);
+        message.setReplyMarkup(keyboardMarkup);
+    }
+
+    private void sendProjectInfo(String chatId) {
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(chatId);
+        sendPhoto.setPhoto("https://example.com/your-project-image.jpg"); // Укажите URL изображения
+        sendPhoto.setCaption("Заголовок проекта\nОписание: Здесь вы можете получить информацию о проекте...");
+
+        try {
+            execute(sendPhoto);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Шаг 3: Обработка проекта и изображения
+
+В методе `sendProjectInfo` отправляется изображение с заголовком и описанием. Вам нужно будет заменить `https://example.com/your-project-image.jpg` на реальный URL изображения вашего проекта.
+
+### Заключение
+
+Теперь ваш бот будет:
+
+1. Выводить приветствие с инлайн-клавиатурой.
+2. При нажатии на кнопку "Строительство" отображать текст с предложением и кнопками для других действий.
+3. Отправлять изображение и описание проекта, когда пользователь нажимает кнопку "Проекты".
+
+Если у вас есть дополнительные вопросы или изменения, дайте знать!
+
+## нужно использовать стратегию Command и Strategy
+
+Для реализации функциональности, которая позволяет пользователям просматривать список проектов с кнопками "Следующий", "Предыдущий" и "Назад", нам нужно сделать следующее:
+
+1. Создать класс `Project`, который будет содержать название, описание и фото.
+2. Создать класс `ProjectCommand`, который будет управлять выводом информации о проектах.
+3. Обновить `CommandManager` и соответствующий класс для обработки состояния просмотра проектов.
+
+### Шаг 1: Создание класса `Project`
+
+Создадим класс `Project`, который будет представлять проект.
+
+```java
+package ru.gb.telegrambot.model;
+
+public class Project {
+    private String title;
+    private String imageUrl;
+    private String description;
+
+    public Project(String title, String imageUrl, String description) {
+        this.title = title;
+        this.imageUrl = imageUrl;
+        this.description = description;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
+```
+
+### Шаг 2: Реализация `ProjectCommand`
+
+Теперь создадим класс `ProjectCommand`, который будет обрабатывать отображение проектов.
+
+```java
+package ru.gb.telegrambot.command;
+
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class ProjectCommand implements Command {
+    private List<Project> projects;
+    private int currentIndex;
+
+    public ProjectCommand(List<Project> projects) {
+        this.projects = projects;
+        this.currentIndex = 0; // Начнем с первого проекта
+    }
+
+    @Override
+    public SendMessage execute(Long chatId) {
+        return showProject(chatId);
+    }
+
+    private SendMessage showProject(Long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId.toString());
+
+        if (currentIndex < 0 || currentIndex >= projects.size()) {
+            sendMessage.setText("Проект не найден.");
+            return sendMessage;
+        }
+
+        Project project = projects.get(currentIndex);
+        sendMessage.setText("**" + project.getTitle() + "**\n\n" + project.getDescription());
+
+        // Создание инлайн кнопок для навигации
+        InlineKeyboardMarkup keyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        // Кнопки для навигации
+        List<InlineKeyboardButton> row = Arrays.asList(
+            new InlineKeyboardButton().setText("Предыдущий").setCallbackData("previous"),
+            new InlineKeyboardButton().setText("Следующий").setCallbackData("next"),
+            new InlineKeyboardButton().setText("Назад").setCallbackData("back")
+        );
+
+        rows.add(row);
+        keyboardMarkup.setKeyboard(rows);
+        sendMessage.setReplyMarkup(keyboardMarkup);
+
+        return sendMessage;
+    }
+
+    public SendPhoto showProjectImage(Long chatId) {
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(chatId.toString());
+        Project project = projects.get(currentIndex);
+        sendPhoto.setPhoto(project.getImageUrl());
+        sendPhoto.setCaption(project.getDescription());
+
+        return sendPhoto;
+    }
+
+    public void nextProject() {
+        if (currentIndex < projects.size() - 1) {
+            currentIndex++;
+        }
+    }
+
+    public void previousProject() {
+        if (currentIndex > 0) {
+            currentIndex--;
+        }
+    }
+
+    public int getCurrentIndex() {
+        return currentIndex;
+    }
+}
+```
+
+### Шаг 3: Обновление `CommandManager`
+
+Теперь обновим `CommandManager`, чтобы включить `ProjectCommand`.
+
+```java
+package ru.gb.telegrambot.service;
+
+import org.springframework.stereotype.Service;
+import ru.gb.telegrambot.command.Command;
+import ru.gb.telegrambot.command.ConstructionCommand;
+import ru.gb.telegrambot.command.ProjectCommand;
+import ru.gb.telegrambot.model.Project;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class CommandManager {
+    private final Map<String, Command> commandMap = new HashMap<>();
+    private ProjectCommand projectCommand;
+
+    public CommandManager() {
+        // Создаем список проектов
+        List<Project> projects = new ArrayList<>();
+        projects.add(new Project("Проект 1", "https://example.com/image1.jpg", "Описание проекта 1"));
+        projects.add(new Project("Проект 2", "https://example.com/image2.jpg", "Описание проекта 2"));
+        projects.add(new Project("Проект 3", "https://example.com/image3.jpg", "Описание проекта 3"));
+        projects.add(new Project("Проект 4", "https://example.com/image4.jpg", "Описание проекта 4"));
+
+        projectCommand = new ProjectCommand(projects);
+
+        // Регистрируем команды
+        commandMap.put("/start", new StartCommand());
+        commandMap.put("construction", projectCommand);
+        // Другие команды
+    }
+
+    public Command getCommand(String commandName, Long chatId) {
+        switch (commandName) {
+            case "projects":
+                return projectCommand;
+            case "next":
+                projectCommand.nextProject();
+                return projectCommand;
+            case "previous":
+                projectCommand.previousProject();
+                return projectCommand;
+            case "back":
+                return new ConstructionCommand();
+            default:
+                return commandMap.get(commandName);
+        }
+    }
+}
+```
+
+### Шаг 4: Обновление `TelegramBotController`
+
+Теперь обновим `TelegramBotController`, чтобы включить добавление метода, который будет обрабатывать новые команды.
+
+```java
+@Override
+public void onUpdateReceived(Update update) {
+    if (update.hasCallbackQuery()) {
+        handleCallbackQuery(update);
+    } else if (update.hasMessage() && update.getMessage().hasText()) {
+        handleMessage(update);
+    }
+}
+
+private void handleCallbackQuery(Update update) {
+    String callbackData = update.getCallbackQuery().getData();
+    Long telegramId = update.getCallbackQuery().getFrom().getId();
+    
+    Command command = commandManager.getCommand(callbackData, telegramId);
+    if (command != null) {
+        if (command instanceof ProjectCommand) {
+            // Отправляем изображение проекта
+            SendPhoto photoMessage = ((ProjectCommand) command).showProjectImage(telegramId);
+            try {
+                execute(photoMessage);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            SendMessage response = command.execute(telegramId);
+            response.setChatId(update.getCallbackQuery().getMessage().getChatId());
+            try {
+                execute(response);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+
+### Заключение
+
+Теперь ваш бот будет:
+
+1. Показывать название, описание и фото проекта при нажатии на кнопку "Проекты".
+2. Обеспечивать навигацию между проектами с помощью кнопок "Следующий", "Предыдущий" и "Назад".
+
+Не забудьте заменить URL изображений на реальные. Если у вас есть другие вопросы или требуется дополнительная функциональность, дайте знать!
